@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import React from 'react';
 import { motion } from 'motion/react';
-import { Plus, Upload, MoreHorizontal, Share2, Edit2, Trash2, Search, ChevronRight, FolderPlus, FilePlus, FolderUp, Copy, Scissors, ClipboardCheck } from 'lucide-react';
+import { Plus, Upload, MoreHorizontal, Share2, Edit2, Trash2, Search, ChevronRight, FolderPlus, FilePlus, FolderUp, Copy, Scissors, ClipboardCheck, LayoutGrid, LayoutList } from 'lucide-react';
 import { FileNode } from '../types';
 import { storage } from '../lib/storage';
 import { cn, formatSize, formatDate } from '../lib/utils';
@@ -48,6 +48,7 @@ export default function ExplorerView({
   const [newFolderName, setNewFolderName] = useState('');
   const [renameValue, setRenameValue] = useState('');
   const [nodeToPreview, setNodeToPreview] = useState<FileNode | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'gallery'>('list');
   
   const currentFolder = files.find(f => f.id === currentFolderId);
   const items = files.filter(f => f.parentId === currentFolderId);
@@ -185,7 +186,14 @@ export default function ExplorerView({
           <h1 className="text-2xl font-bold truncate flex-1 text-white">
             {currentFolder ? currentFolder.name : 'Mis Archivos'}
           </h1>
-          <div className="flex gap-2">
+          <div className="flex gap-2 shrink-0">
+            <button 
+              onClick={() => setViewMode(viewMode === 'list' ? 'gallery' : 'list')}
+              className="w-12 h-12 rounded-2xl flex items-center justify-center bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-all active:scale-95"
+              title={viewMode === 'list' ? 'Vista Galería' : 'Vista Lista'}
+            >
+              {viewMode === 'list' ? <LayoutGrid size={20} /> : <LayoutList size={20} />}
+            </button>
             {clipboard && (
               <button 
                 onClick={() => onPaste(currentFolderId)}
@@ -228,7 +236,7 @@ export default function ExplorerView({
         />
       </header>
 
-      {/* File List */}
+      {/* Content Area */}
       <div className="flex-1 px-8 pb-10">
         {items.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-slate-700">
@@ -237,7 +245,7 @@ export default function ExplorerView({
             </div>
             <p className="font-bold text-[11px] uppercase tracking-widest italic">Carpeta vacía</p>
           </div>
-        ) : (
+        ) : viewMode === 'list' ? (
           <div className="space-y-4">
             <div className="px-6 py-2 flex items-center justify-between text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em] opacity-80 mb-2">
               <span>Nombre</span>
@@ -285,6 +293,46 @@ export default function ExplorerView({
                   >
                     <MoreHorizontal size={20} />
                   </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 xs:grid-cols-3 gap-4">
+            {items.sort((a, b) => Number(b.isFolder) - Number(a.isFolder)).map((item) => (
+              <div 
+                key={item.id}
+                className="bg-white/5 backdrop-blur-md border border-white/10 rounded-[32px] p-4 flex flex-col items-center text-center gap-4 active:bg-white/15 transition-all group relative overflow-hidden active:scale-[0.95]"
+                onClick={() => {
+                  if (item.isFolder) {
+                    onNavigate(item.id);
+                  } else {
+                    setNodeToPreview(item);
+                  }
+                }}
+              >
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedNode(item);
+                  }}
+                  className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-full text-slate-400 hover:text-white transition-all z-10"
+                >
+                  <MoreHorizontal size={16} />
+                </button>
+
+                <div className={cn(
+                  "w-16 h-16 rounded-[24px] flex items-center justify-center transition-transform group-hover:scale-110 shadow-lg",
+                  item.isFolder ? "bg-blue-500/20 text-blue-400 shadow-blue-500/10" : "bg-white/5 text-slate-400 shadow-black/20"
+                )}>
+                  <FileIcon type={item.type} size={32} />
+                </div>
+                
+                <div className="w-full">
+                  <h3 className="font-semibold text-xs truncate text-white uppercase tracking-wider">{item.name}</h3>
+                  <p className="text-[9px] font-bold text-slate-500 mt-1 uppercase tracking-widest">
+                    {item.isFolder ? 'Carpeta' : formatSize(item.size)}
+                  </p>
                 </div>
               </div>
             ))}
